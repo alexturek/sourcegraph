@@ -31,16 +31,6 @@ import (
 // metricsRecorder records operational metrics for methods.
 var metricsRecorder = metrics.NewOperationMetrics(prometheus.DefaultRegisterer, "updatecheck_client", metrics.WithLabels("method"))
 
-//
-var updateCheckHistogram = prometheus.NewHistogram(prometheus.HistogramOpts{
-	Name: "update_check_req",
-	Help: "metrics for update_check",
-})
-
-func init() {
-	prometheus.MustRegister(updateCheckHistogram)
-}
-
 // Status of the check for software updates for Sourcegraph.
 type Status struct {
 	Date          time.Time // the time that the last check completed
@@ -166,7 +156,8 @@ func updateURL(ctx context.Context) string {
 	return baseURL.String()
 }
 
-func updateBody(ctx context.Context) (io.Reader, error) {
+func updateBody(ctx context.Context) (_ io.Reader, err error) {
+	defer recordOperation("total_request_time")(&err)
 	logFunc := log15.Debug
 	if envvar.SourcegraphDotComMode() {
 		logFunc = log15.Warn
