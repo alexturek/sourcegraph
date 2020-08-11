@@ -258,18 +258,18 @@ func (s *Syncer) upserts(diff Diff) []*Repo {
 }
 
 type sourceDiff struct {
-	Added, Deleted map[api.RepoID]*SourceInfo
+	Added, Deleted map[api.RepoID][]SourceInfo
 }
 
 func (s *Syncer) upsertSources(diff Diff, sourcedSubset []*Repo) *sourceDiff {
 	sdiff := sourceDiff{
-		Added:   make(map[api.RepoID]*SourceInfo),
-		Deleted: make(map[api.RepoID]*SourceInfo),
+		Added:   make(map[api.RepoID][]SourceInfo),
+		Deleted: make(map[api.RepoID][]SourceInfo),
 	}
 
 	for _, repo := range diff.Added {
 		for _, si := range repo.Sources {
-			sdiff.Added[repo.ID] = si
+			sdiff.Added[repo.ID] = append(sdiff.Added[repo.ID], *si)
 		}
 	}
 
@@ -294,7 +294,7 @@ func (s *Syncer) sourceDiff(repoID api.RepoID, diff *sourceDiff, oldSources, new
 			continue
 		}
 
-		diff.Deleted[repoID] = oldSources[k]
+		diff.Deleted[repoID] = append(diff.Deleted[repoID], *oldSources[k])
 	}
 
 	for k := range newSources {
@@ -302,7 +302,7 @@ func (s *Syncer) sourceDiff(repoID api.RepoID, diff *sourceDiff, oldSources, new
 			continue
 		}
 
-		diff.Added[repoID] = newSources[k]
+		diff.Added[repoID] = append(diff.Deleted[repoID], *newSources[k])
 	}
 }
 

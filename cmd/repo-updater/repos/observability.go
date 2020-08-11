@@ -9,6 +9,7 @@ import (
 	otlog "github.com/opentracing/opentracing-go/log"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sourcegraph/sourcegraph/internal/api"
 	"github.com/sourcegraph/sourcegraph/internal/logging"
 	"github.com/sourcegraph/sourcegraph/internal/metrics"
 	"github.com/sourcegraph/sourcegraph/internal/trace"
@@ -129,6 +130,7 @@ type StoreMetrics struct {
 	Transact               *metrics.OperationMetrics
 	Done                   *metrics.OperationMetrics
 	UpsertRepos            *metrics.OperationMetrics
+	UpsertSources          *metrics.OperationMetrics
 	ListRepos              *metrics.OperationMetrics
 	UpsertExternalServices *metrics.OperationMetrics
 	ListExternalServices   *metrics.OperationMetrics
@@ -432,6 +434,25 @@ func (o *ObservedStore) UpsertRepos(ctx context.Context, repos ...*Repo) (err er
 	}(time.Now())
 
 	return o.store.UpsertRepos(ctx, repos...)
+}
+
+// UpsertSources calls into the inner Store and registers the observed results.
+func (o *ObservedStore) UpsertSources(ctx context.Context, added, deleted map[api.RepoID][]SourceInfo) (err error) {
+	tr, ctx := o.trace(ctx, "Store.UpsertSources")
+	tr.LogFields(otlog.Int("count", len(added)+len(deleted)))
+
+	defer func(began time.Time) {
+		secs := time.Since(began).Seconds()
+		count := float64(len(added) + len(deleted))
+
+		o.metrics.UpsertSources.Observe(secs, count, &err)
+		logging.Log(o.log, "store.upsert-sources", &err, "count", count)
+
+		tr.SetError(err)
+		tr.Finish()
+	}(time.Now())
+
+	return o.store.UpsertSources(ctx, added, deleted)
 }
 
 // SetClonedRepos calls into the inner Store and registers the observed results.

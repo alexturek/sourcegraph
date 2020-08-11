@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS external_service_repos (
     external_service_id bigint NOT NULL,
     repo_id integer NOT NULL,
     clone_url text NOT NULL,
+    deleted_at timestamp with time zone,
 
     FOREIGN KEY (external_service_id) REFERENCES external_services(id) ON DELETE CASCADE DEFERRABLE,
     FOREIGN KEY (repo_id) REFERENCES repo(id) ON DELETE CASCADE DEFERRABLE
@@ -47,7 +48,7 @@ CREATE FUNCTION soft_delete_repo_reference_on_external_service_repos() RETURNS t
           UPDATE
             external_service_repos
           SET
-            deleted_at = true
+            deleted_at = clock_timestamp()
           WHERE
             external_service_repos.repo_id ? OLD.id::integer;
         END IF;
@@ -57,7 +58,7 @@ CREATE FUNCTION soft_delete_repo_reference_on_external_service_repos() RETURNS t
           UPDATE
             external_service_repos
           SET
-            deleted_at = false
+            deleted_at = null
           WHERE
             external_service_repos.repo_id ? OLD.id::integer;
         END IF;
@@ -66,7 +67,7 @@ CREATE FUNCTION soft_delete_repo_reference_on_external_service_repos() RETURNS t
     END;
 $$;
 
-CREATE TRIGGER trig_soft_delete_repo_reference_on_external_service_repos AFTER UPDATE ON repo FOR EACH ROW EXECUTE PROCEDURE delete_repo_reference_on_external_service_repos();
+CREATE TRIGGER trig_soft_delete_repo_reference_on_external_service_repos AFTER UPDATE ON repo FOR EACH ROW EXECUTE PROCEDURE soft_delete_repo_reference_on_external_service_repos();
 
 
 

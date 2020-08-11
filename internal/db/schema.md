@@ -341,11 +341,12 @@ Check constraints:
 
 # Table "public.external_service_repos"
 ```
-       Column        |  Type   | Modifiers 
----------------------+---------+-----------
- external_service_id | bigint  | not null
- repo_id             | integer | not null
- clone_url           | text    | not null
+       Column        |           Type           | Modifiers 
+---------------------+--------------------------+-----------
+ external_service_id | bigint                   | not null
+ repo_id             | integer                  | not null
+ clone_url           | text                     | not null
+ deleted_at          | timestamp with time zone | 
 Foreign-key constraints:
     "external_service_repos_external_service_id_fkey" FOREIGN KEY (external_service_id) REFERENCES external_services(id) ON DELETE CASCADE DEFERRABLE
     "external_service_repos_repo_id_fkey" FOREIGN KEY (repo_id) REFERENCES repo(id) ON DELETE CASCADE DEFERRABLE
@@ -793,6 +794,8 @@ Referenced by:
     TABLE "default_repos" CONSTRAINT "default_repos_repo_id_fkey" FOREIGN KEY (repo_id) REFERENCES repo(id) ON DELETE CASCADE
     TABLE "discussion_threads_target_repo" CONSTRAINT "discussion_threads_target_repo_repo_id_fkey" FOREIGN KEY (repo_id) REFERENCES repo(id) ON DELETE CASCADE
     TABLE "external_service_repos" CONSTRAINT "external_service_repos_repo_id_fkey" FOREIGN KEY (repo_id) REFERENCES repo(id) ON DELETE CASCADE DEFERRABLE
+Triggers:
+    trig_soft_delete_repo_reference_on_external_service_repos AFTER UPDATE ON repo FOR EACH ROW EXECUTE PROCEDURE soft_delete_repo_reference_on_external_service_repos()
 
 ```
 

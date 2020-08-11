@@ -72,12 +72,14 @@ type FakeStore struct {
 	GetRepoByNameError          error // error to be returned in GetRepoByName
 	ListReposError              error // error to be returned in ListRepos
 	UpsertReposError            error // error to be returned in UpsertRepos
+	UpsertSourcesError          error // error to be returned in UpsertSources
 	SetClonedReposError         error // error to be returned in SetClonedRepos
 	CountNotClonedReposError    error // error to be returned in CountNotClonedRepos
 	svcIDSeq                    int64
 	repoIDSeq                   api.RepoID
 	svcByID                     map[int64]*ExternalService
 	repoByID                    map[api.RepoID]*Repo
+	srcByRepoID                 map[api.RepoID][]SourceInfo
 	parent                      *FakeStore
 }
 
@@ -98,20 +100,27 @@ func (s *FakeStore) Transact(ctx context.Context) (TxStore, error) {
 		repoByID[r.ID] = clone
 	}
 
+	srcByRepoID := make(map[api.RepoID][]SourceInfo, len(s.srcByRepoID))
+	for rid, src := range s.srcByRepoID {
+		srcByRepoID[rid] = src
+	}
+
 	return &FakeStore{
 		ListExternalServicesError:   s.ListExternalServicesError,
 		UpsertExternalServicesError: s.UpsertExternalServicesError,
 		GetRepoByNameError:          s.GetRepoByNameError,
 		ListReposError:              s.ListReposError,
 		UpsertReposError:            s.UpsertReposError,
+		UpsertSourcesError:          s.UpsertSourcesError,
 		SetClonedReposError:         s.SetClonedReposError,
 		CountNotClonedReposError:    s.CountNotClonedReposError,
 
-		svcIDSeq:  s.svcIDSeq,
-		svcByID:   svcByID,
-		repoIDSeq: s.repoIDSeq,
-		repoByID:  repoByID,
-		parent:    s,
+		svcIDSeq:    s.svcIDSeq,
+		svcByID:     svcByID,
+		repoIDSeq:   s.repoIDSeq,
+		repoByID:    repoByID,
+		srcByRepoID: srcByRepoID,
+		parent:      s,
 	}, nil
 }
 
@@ -377,6 +386,36 @@ func (s *FakeStore) SetClonedRepos(ctx context.Context, repoNames ...string) err
 		}
 
 		r.Cloned = found
+	}
+
+	return s.checkConstraints()
+}
+
+// UpsertSources upserts all the given repos in the store.
+func (s *FakeStore) UpsertSources(ctx context.Context, added, deleted map[api.RepoID][]SourceInfo) error {
+	if s.UpsertSourcesError != nil {
+		return s.UpsertSourcesError
+	}
+
+	if s.srcByRepoID == nil {
+		s.srcByRepoID = make(map[api.RepoID][]SourceInfo)
+	}
+
+	for rid, list := range added {
+		for _, src := range list {
+			s.srcByRepoID[rid] = append(s.srcByRepoID[rid], src)
+		}
+	}
+
+	for rid, list := range deleted {
+		for _, src := range list {
+			for i := 0; i < len(s.srcByRepoID[rid]); i++ {
+				if s.srcByRepoID[rid][i].ExternalServiceID() == src.ExternalServiceID() && s.srcByRepoID[rid][i].CloneURL == src.CloneURL {
+					s.srcByRepoID[rid] = append(s.srcByRepoID[rid][:i], s.srcByRepoID[rid][i+1:]...)
+					i--
+				}
+			}
+		}
 	}
 
 	return s.checkConstraints()

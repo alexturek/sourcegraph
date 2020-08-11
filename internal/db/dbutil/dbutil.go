@@ -319,6 +319,39 @@ func (n JSONInt64Set) Value() (driver.Value, error) {
 	return *n.Set, nil
 }
 
+// NullJSONRawMessage represents a json.RawMessage that may be null. NullJSONRawMessage implements the
+// sql.Scanner interface so it can be used as a scan destination, similar to
+// sql.NullString. When the scanned value is null, Time is set to the zero value.
+type NullJSONRawMessage json.RawMessage
+
+// Scan implements the Scanner interface.
+func (n NullJSONRawMessage) Scan(value interface{}) error {
+	switch value := value.(type) {
+	case nil:
+	case []byte:
+		if len(value) == 0 {
+			return nil
+		}
+
+		if err := json.Unmarshal(value, &n); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("value is not []byte: %T", value)
+	}
+
+	return nil
+}
+
+// Value implements the driver Valuer interface.
+func (n NullJSONRawMessage) Value() (driver.Value, error) {
+	if n == nil {
+		return nil, nil
+	}
+
+	return json.RawMessage(n), nil
+}
+
 func PostgresDSN(currentUser string, getenv func(string) string) string {
 	// PGDATASOURCE is a sourcegraph specific variable for just setting the DSN
 	if dsn := getenv("PGDATASOURCE"); dsn != "" {

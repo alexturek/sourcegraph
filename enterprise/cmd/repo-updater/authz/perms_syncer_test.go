@@ -96,6 +96,10 @@ func (s *mockReposStore) UpsertRepos(context.Context, ...*repos.Repo) error {
 	return nil
 }
 
+func (s *mockReposStore) UpsertSources(ctx context.Context, added, deleted map[api.RepoID][]repos.SourceInfo) error {
+	return nil
+}
+
 func (s *mockReposStore) SetClonedRepos(ctx context.Context, repoNames ...string) error {
 	return nil
 }
