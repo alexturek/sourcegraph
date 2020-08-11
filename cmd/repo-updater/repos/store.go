@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io"
-	"strconv"
 	"strings"
 	"time"
 
@@ -988,17 +987,18 @@ func scanRepo(r *Repo, s scanner) error {
 		CloneURL string
 		Kind     string
 	}
-	var srcs []sourceInfo
 
 	r.Sources = make(map[string]*SourceInfo)
 
-	if sources != nil {
-		if err = json.Unmarshal(sources, &srcs); err != nil {
+	if sources.Raw != nil {
+		var srcs []sourceInfo
+		if err = json.Unmarshal(sources.Raw, &srcs); err != nil {
 			return errors.Wrap(err, "scanRepo: failed to unmarshal sources")
 		}
 		for _, src := range srcs {
-			r.Sources[extsvc.URN(src.Kind, src.ID)] = &SourceInfo{
-				ID:       strconv.FormatInt(src.ID, 10),
+			urn := extsvc.URN(src.Kind, src.ID)
+			r.Sources[urn] = &SourceInfo{
+				ID:       urn,
 				CloneURL: src.CloneURL,
 			}
 		}

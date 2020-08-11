@@ -144,6 +144,11 @@ func (s *Syncer) Sync(ctx context.Context) (err error) {
 		return errors.Wrap(err, "syncer.sync.store.upsert-repos")
 	}
 
+	sdiff := s.upsertSources(diff, sourced)
+	if err = store.UpsertSources(ctx, sdiff.Added, sdiff.Deleted); err != nil {
+		return errors.Wrap(err, "syncer.syncsubset.store.upsert-sources")
+	}
+
 	if s.Synced != nil {
 		select {
 		case s.Synced <- diff:
@@ -221,7 +226,7 @@ func (s *Syncer) syncSubset(ctx context.Context, insertOnly bool, sourcedSubset 
 
 	sdiff := s.upsertSources(diff, sourcedSubset)
 	if err = store.UpsertSources(ctx, sdiff.Added, sdiff.Deleted); err != nil {
-		return Diff{}, errors.Wrap(err, "syncer.syncsubset.store.upsert-repos")
+		return Diff{}, errors.Wrap(err, "syncer.syncsubset.store.upsert-sources")
 	}
 
 	if s.SubsetSynced != nil {
