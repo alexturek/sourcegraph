@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -466,8 +465,6 @@ func (s DBStore) UpsertSources(ctx context.Context, added, deleted map[api.RepoI
 		return err
 	}
 
-	fmt.Println("addedSources", string(addedSources))
-	fmt.Println("deletedSources", string(deletedSources))
 	q := sqlf.Sprintf(upsertSourcesQueryFmtstr, sqlf.Sprintf("%s", string(deletedSources)), sqlf.Sprintf("%s", string(addedSources)))
 
 	_, err = s.db.ExecContext(ctx, q.Query(sqlf.PostgresBindVar), q.Args()...)

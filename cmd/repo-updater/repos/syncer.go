@@ -261,6 +261,7 @@ type sourceDiff struct {
 	Added, Deleted map[api.RepoID][]SourceInfo
 }
 
+// upsertSources creates a diff
 func (s *Syncer) upsertSources(diff Diff, sourcedSubset []*Repo) *sourceDiff {
 	sdiff := sourceDiff{
 		Added:   make(map[api.RepoID][]SourceInfo),
